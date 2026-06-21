@@ -13,24 +13,28 @@ from fastapi.responses import FileResponse
 from automation.video_render import find_ffmpeg, render_video
 from automation.youtube_upload import PublishMetadata, upload_to_youtube, write_publish_manifest
 
-from .audio import synthesize_mock_track
+from ..models import MusicGenAdapter, MusicGenError, MusicGenOutOfMemoryError
 from .config import Settings
 from .schemas import GenerateRequest, HealthResponse, PublishRequest, PublishResponse, TrackResponse
 from .store import TrackStore
 
 RenderFunction = Callable[[Path, Path, Path], Path]
 PublishFunction = Callable[[Path, PublishMetadata, Path, Path], str]
+GenerationFunction = Callable[[str, int, Path], Path]
 
 
 def create_app(
     settings: Settings | None = None,
     render_function: RenderFunction = render_video,
     publish_function: PublishFunction = upload_to_youtube,
+    generation_function: GenerationFunction | None = None,
 ) -> FastAPI:
     active_settings = settings or Settings.from_environment()
     active_settings.prepare()
     store = TrackStore(active_settings.database_path)
     store.initialize()
+    musicgen = MusicGenAdapter()
+    generate_audio = generation_function or musicgen.generate
 
     application = FastAPI(
         title="openFlow API",
@@ -46,6 +50,7 @@ def create_app(
     )
     application.state.settings = active_settings
     application.state.store = store
+    application.state.musicgen = musicgen
 
     def response_for(track: dict[str, Any]) -> TrackResponse:
         return TrackResponse(
@@ -63,7 +68,10 @@ def create_app(
     @application.get("/health", response_model=HealthResponse)
     async def health() -> HealthResponse:
         return HealthResponse(
-            engine="mock",
+            engine="musicgen",
+            model_name=musicgen.model_name,
+            device=musicgen.device,
+            model_loaded=musicgen.loaded,
             ffmpeg_available=find_ffmpeg() is not None,
             track_count=len(store.list()),
         )
@@ -81,15 +89,21 @@ def create_app(
         filename = f"{track_id}.wav"
         try:
             await asyncio.to_thread(
-                synthesize_mock_track,
-                active_settings.generated_dir / filename,
+                generate_audio,
                 prompt,
                 request.duration_seconds,
+                active_settings.generated_dir / filename,
             )
             track = store.update(track_id, status="ready", audio_filename=filename, error=None)
+        except MusicGenOutOfMemoryError as error:
+            store.update(track_id, status="failed", error=str(error))
+            raise HTTPException(status_code=500, detail=str(error)) from error
+        except MusicGenError as error:
+            store.update(track_id, status="failed", error=str(error))
+            raise HTTPException(status_code=500, detail=str(error)) from error
         except Exception as error:
             store.update(track_id, status="failed", error=str(error))
-            raise HTTPException(status_code=500, detail="Audio generation failed") from error
+            raise HTTPException(status_code=500, detail=f"MusicGen generation failed: {error}") from error
         return response_for(track)
 
     @application.get("/tracks", response_model=list[TrackResponse])

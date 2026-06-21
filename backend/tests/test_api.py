@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+import wave
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -9,6 +10,7 @@ from fastapi.testclient import TestClient
 from automation.youtube_upload import PublishMetadata
 from backend.app.config import Settings
 from backend.app.main import create_app
+from backend.models import MusicGenOutOfMemoryError
 
 
 class ApiTests(unittest.TestCase):
@@ -25,6 +27,16 @@ class ApiTests(unittest.TestCase):
             youtube_token_path=root / "youtube_token.json",
         )
         settings.youtube_client_secrets.write_text("{}", encoding="utf-8")
+
+        def fake_generate(prompt: str, duration_seconds: int, output: Path) -> Path:
+            self.assertTrue(prompt)
+            output.parent.mkdir(parents=True, exist_ok=True)
+            with wave.open(str(output), "wb") as audio:
+                audio.setnchannels(2)
+                audio.setsampwidth(2)
+                audio.setframerate(44_100)
+                audio.writeframes(b"\0\0\0\0" * 44_100 * duration_seconds)
+            return output
 
         def fake_render(audio: Path, output: Path, background: Path) -> Path:
             self.assertTrue(audio.is_file())
@@ -44,7 +56,17 @@ class ApiTests(unittest.TestCase):
             self.assertEqual(metadata.title, "Night Drive")
             return "https://www.youtube.com/watch?v=test-video"
 
-        self.client = TestClient(create_app(settings, fake_render, fake_publish))
+        self.settings = settings
+        self.fake_render = fake_render
+        self.fake_publish = fake_publish
+        self.client = TestClient(
+            create_app(
+                settings,
+                render_function=fake_render,
+                publish_function=fake_publish,
+                generation_function=fake_generate,
+            )
+        )
 
     def tearDown(self) -> None:
         self.temporary_directory.cleanup()
@@ -52,11 +74,12 @@ class ApiTests(unittest.TestCase):
     def test_generate_list_render_and_serve_track(self) -> None:
         generated = self.client.post(
             "/generate",
-            json={"prompt": "warm nocturnal synthwave", "model": "ace-step", "duration_seconds": 1},
+            json={"prompt": "warm nocturnal synthwave", "model": "musicgen", "duration_seconds": 1},
         )
         self.assertEqual(generated.status_code, 201)
         track = generated.json()
         self.assertEqual(track["status"], "ready")
+        self.assertFalse(track["mocked"])
         self.assertTrue(track["audio_url"].startswith("/media/audio/"))
 
         audio = self.client.get(track["audio_url"])
@@ -96,6 +119,30 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.client.post("/generate", json={"prompt": ""}).status_code, 422)
         self.assertEqual(self.client.get("/tracks/missing").status_code, 404)
         self.assertEqual(self.client.post("/tracks/missing/render").status_code, 404)
+
+    def test_musicgen_oom_is_a_clean_500_and_server_survives(self) -> None:
+        def out_of_memory(prompt: str, duration_seconds: int, output: Path) -> Path:
+            raise MusicGenOutOfMemoryError("MusicGen ran out of memory on cuda. Reduce duration.")
+
+        client = TestClient(
+            create_app(
+                self.settings,
+                render_function=self.fake_render,
+                publish_function=self.fake_publish,
+                generation_function=out_of_memory,
+            )
+        )
+        response = client.post(
+            "/generate",
+            json={"prompt": "large orchestral score", "model": "musicgen", "duration_seconds": 30},
+        )
+
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(
+            response.json(),
+            {"detail": "MusicGen ran out of memory on cuda. Reduce duration."},
+        )
+        self.assertEqual(client.get("/health").status_code, 200)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -20,7 +20,7 @@ TRACK_FIELDS = {
 
 
 def utc_now() -> str:
-    return datetime.now(UTC).isoformat()
+    return datetime.now(timezone.utc).isoformat()
 
 
 class TrackStore:
@@ -45,11 +45,17 @@ class TrackStore:
                     publish_status TEXT NOT NULL DEFAULT 'not_published',
                     youtube_url TEXT,
                     error TEXT,
+                    mocked INTEGER NOT NULL DEFAULT 0,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )
                 """
             )
+            columns = {
+                row["name"] for row in connection.execute("PRAGMA table_info(tracks)").fetchall()
+            }
+            if "mocked" not in columns:
+                connection.execute("ALTER TABLE tracks ADD COLUMN mocked INTEGER NOT NULL DEFAULT 1")
 
     def create(self, *, track_id: str, prompt: str, model: str, duration_seconds: int) -> dict[str, Any]:
         timestamp = utc_now()
@@ -58,8 +64,8 @@ class TrackStore:
                 """
                 INSERT INTO tracks (
                     id, prompt, model, duration_seconds, status,
-                    publish_status, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, 'generating', 'not_published', ?, ?)
+                    publish_status, mocked, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, 'generating', 'not_published', 0, ?, ?)
                 """,
                 (track_id, prompt, model, duration_seconds, timestamp, timestamp),
             )

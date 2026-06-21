@@ -14,7 +14,7 @@ export type PublishStatus = "not_published" | "publishing" | "dry_run" | "publis
 
 export type GenerationRequest = {
   prompt: string;
-  model: ModelName;
+  model: "musicgen";
   duration_seconds?: number;
 };
 
@@ -37,6 +37,9 @@ export type Track = {
 export type Health = {
   status: "ok";
   engine: string;
+  model_name: string;
+  device: string;
+  model_loaded: boolean;
   ffmpeg_available: boolean;
   track_count: number;
 };

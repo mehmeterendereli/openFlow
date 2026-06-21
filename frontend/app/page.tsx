@@ -12,19 +12,17 @@ import {
   requestErrorMessage,
   resolveMediaUrl,
 } from "@/lib/api";
-import type { Health, ModelName, Track } from "@/lib/api";
+import type { Health, Track } from "@/lib/api";
 
-const models: { value: ModelName; label: string; detail: string }[] = [
-  { value: "ace-step", label: "ACE-Step", detail: "High fidelity" },
-  { value: "musicgen", label: "MusicGen", detail: "Fast ideas" },
-  { value: "rvc", label: "RVC", detail: "Voice conversion" },
-];
+const models = [
+  { value: "musicgen", label: "MusicGen Small", detail: "Local AI · 300M" },
+] as const;
 
 type BusyAction = "generate" | "render" | "publish" | null;
 
 export default function Home() {
   const [prompt, setPrompt] = useState("");
-  const [model, setModel] = useState<ModelName>("ace-step");
+  const [model, setModel] = useState<"musicgen">("musicgen");
   const [duration, setDuration] = useState(8);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -133,7 +131,7 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-2 text-xs text-zinc-500">
           <span className={`h-2 w-2 rounded-full ${health ? "bg-emerald-400 shadow-[0_0_10px_#34d399]" : "bg-amber-400"}`} />
-          {health ? `${health.engine} engine · ${health.ffmpeg_available ? "render ready" : "FFmpeg missing"}` : "API offline"}
+          {health ? `${health.engine} · ${health.model_loaded ? health.device : `${health.device} pending`}` : "API offline"}
         </div>
       </nav>
 
@@ -158,7 +156,7 @@ export default function Home() {
             <textarea id="prompt" value={prompt} onChange={(event) => setPrompt(event.target.value.slice(0, 500))} placeholder="A slow-burning analog synth track, nocturnal and cinematic, with dusty drums and a warm bassline..." className="min-h-36 w-full resize-none rounded-2xl border border-white/10 bg-black/30 p-5 text-base leading-7 text-zinc-100 outline-none transition focus:border-acid/50 focus:ring-2 focus:ring-acid/10" />
             <div className="mt-5 grid gap-4 sm:grid-cols-[1fr_150px_auto]">
               <Control label="Generation engine">
-                <select value={model} onChange={(event) => setModel(event.target.value as ModelName)} className="control-input">
+                <select value={model} onChange={(event) => setModel(event.target.value as "musicgen")} className="control-input">
                   {models.map((item) => <option key={item.value} value={item.value}>{item.label} — {item.detail}</option>)}
                 </select>
               </Control>

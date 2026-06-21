@@ -7,7 +7,7 @@ import type { Track } from "./api";
 const track: Track = {
   id: "track-1",
   prompt: "Nocturnal synthwave",
-  model: "ace-step",
+  model: "musicgen",
   duration_seconds: 8,
   status: "ready",
   publish_status: "not_published",
@@ -15,7 +15,7 @@ const track: Track = {
   video_url: null,
   youtube_url: null,
   error: null,
-  mocked: true,
+  mocked: false,
   created_at: "2026-06-21T00:00:00Z",
   updated_at: "2026-06-21T00:00:00Z",
 };
@@ -30,10 +30,10 @@ describe("openFlow API client", () => {
   afterEach(() => mock.restore());
 
   it("generates and lists tracks using the backend contract", async () => {
-    mock.onPost("/generate", { prompt: track.prompt, model: "ace-step", duration_seconds: 8 }).reply(201, track);
+    mock.onPost("/generate", { prompt: track.prompt, model: "musicgen", duration_seconds: 8 }).reply(201, track);
     mock.onGet("/tracks").reply(200, [track]);
 
-    await expect(generateTrack({ prompt: track.prompt, model: "ace-step", duration_seconds: 8 })).resolves.toEqual(track);
+    await expect(generateTrack({ prompt: track.prompt, model: "musicgen", duration_seconds: 8 })).resolves.toEqual(track);
     await expect(listTracks()).resolves.toEqual([track]);
   });
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import tempfile
+import wave
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -23,7 +24,17 @@ def main() -> int:
             database_path=root / "openflow.db",
             default_background=Path("automation/placeholder.ppm").resolve(),
         )
-        with TestClient(create_app(settings)) as client:
+
+        def audio_fixture(prompt: str, duration_seconds: int, output: Path) -> Path:
+            output.parent.mkdir(parents=True, exist_ok=True)
+            with wave.open(str(output), "wb") as audio:
+                audio.setnchannels(2)
+                audio.setsampwidth(2)
+                audio.setframerate(44_100)
+                audio.writeframes(b"\0\0\0\0" * 44_100 * duration_seconds)
+            return output
+
+        with TestClient(create_app(settings, generation_function=audio_fixture)) as client:
             health = client.get("/health")
             assert health.status_code == 200, health.text
             assert health.json()["ffmpeg_available"], "FFmpeg is unavailable"
@@ -32,7 +43,7 @@ def main() -> int:
                 "/generate",
                 json={
                     "prompt": "Warm nocturnal synthwave with a patient analog pulse",
-                    "model": "ace-step",
+                    "model": "musicgen",
                     "duration_seconds": 1,
                 },
             )

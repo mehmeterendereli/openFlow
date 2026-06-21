@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -11,7 +11,7 @@ PublishStatus = Literal["not_published", "publishing", "dry_run", "published", "
 
 class GenerateRequest(BaseModel):
     prompt: str = Field(min_length=1, max_length=500)
-    model: ModelName = "ace-step"
+    model: Literal["musicgen"] = "musicgen"
     duration_seconds: int = Field(default=8, ge=1, le=30)
 
 
@@ -22,11 +22,11 @@ class TrackResponse(BaseModel):
     duration_seconds: int
     status: TrackStatus
     publish_status: PublishStatus
-    audio_url: str | None = None
-    video_url: str | None = None
-    youtube_url: str | None = None
-    error: str | None = None
-    mocked: bool = True
+    audio_url: Optional[str] = None
+    video_url: Optional[str] = None
+    youtube_url: Optional[str] = None
+    error: Optional[str] = None
+    mocked: bool
     created_at: str
     updated_at: str
 
@@ -34,6 +34,9 @@ class TrackResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: Literal["ok"] = "ok"
     engine: str
+    model_name: str
+    device: str
+    model_loaded: bool
     ffmpeg_available: bool
     track_count: int
 
@@ -50,4 +53,4 @@ class PublishResponse(BaseModel):
     track: TrackResponse
     mode: Literal["dry-run", "youtube"]
     message: str
-    youtube_url: str | None = None
+    youtube_url: Optional[str] = None

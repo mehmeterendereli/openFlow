@@ -7,3 +7,4 @@
 - [x] **Phase 6: Persistence:** Store tracks and pipeline state in local SQLite.
 - [x] **Phase 7: Publishing:** Add safe dry-run and real OAuth YouTube upload paths.
 - [x] **Phase 8: Quality & Release:** Add CI, full smoke verification, and publish the development PR.
+- [x] **Phase 9: Local AI:** Replace the CPU mock with CUDA-first `facebook/musicgen-small` inference.

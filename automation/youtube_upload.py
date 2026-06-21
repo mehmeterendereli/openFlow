@@ -11,7 +11,7 @@ from pathlib import Path
 YOUTUBE_UPLOAD_SCOPE = "https://www.googleapis.com/auth/youtube.upload"
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class PublishMetadata:
     title: str
     description: str = "Generated locally with openFlow."

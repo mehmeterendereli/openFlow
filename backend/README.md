@@ -1,23 +1,29 @@
 # openFlow backend
 
-The FastAPI service currently uses a deterministic mock synthesizer so the complete
-workflow functions without CUDA, PyTorch, or model weights. Track metadata and job
-state are persisted locally in SQLite under `backend/data/`.
+FastAPI loads `facebook/musicgen-small` through the local AudioCraft adapter on the
+first generation request. CUDA is preferred; CPU is selected when CUDA is unavailable.
+The model instance is cached, inference is serialized for GPU safety, and generated
+32 kHz WAV files feed the existing FFmpeg render pipeline directly.
+
+Track metadata and job state are persisted locally in SQLite under `backend/data/`.
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r backend/requirements-dev.txt
-uvicorn backend.app.main:app --reload --port 8000
+make setup-ai
+make backend-ai
 ```
 
-From the repository root, test the dependency-free audio engine with:
+The first `POST /generate` request downloads the model weights. Use
+`OPENFLOW_MUSICGEN_DEVICE=cpu` to force CPU or leave it at `auto` for CUDA-first
+selection. See `setup_notes.md` for Windows/WSL and system dependencies.
+
+Development tests use an injected audio runtime and do not download weights:
 
 ```bash
-PYTHONPATH=. pytest -s backend/tests automation/tests
+make setup
+make test
+make smoke
 ```
 
-API documentation is available at `http://localhost:8000/docs`.
-
-The API exposes generation at `POST /generate`, a persistent library at `GET /tracks`,
-and 1080p rendering at `POST /tracks/{track_id}/render`.
+API documentation is available at `http://localhost:8000/docs`. The API exposes
+generation at `POST /generate`, a persistent library at `GET /tracks`, and 1080p
+rendering at `POST /tracks/{track_id}/render`.
