@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 ModelName = Literal["ace-step", "musicgen", "rvc"]
 TrackStatus = Literal["generating", "ready", "rendering", "rendered", "failed"]
-PublishStatus = Literal["not_published", "publishing", "published", "failed"]
+PublishStatus = Literal["not_published", "publishing", "dry_run", "published", "failed"]
 
 
 class GenerateRequest(BaseModel):
@@ -36,3 +36,18 @@ class HealthResponse(BaseModel):
     engine: str
     ffmpeg_available: bool
     track_count: int
+
+
+class PublishRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=100)
+    description: str = Field(default="Generated locally with openFlow.", max_length=5000)
+    tags: list[str] = Field(default_factory=list, max_length=20)
+    privacy_status: Literal["private", "unlisted", "public"] = "private"
+    dry_run: bool = True
+
+
+class PublishResponse(BaseModel):
+    track: TrackResponse
+    mode: Literal["dry-run", "youtube"]
+    message: str
+    youtube_url: str | None = None

@@ -20,7 +20,10 @@ class ApiTests(unittest.TestCase):
             rendered_dir=root / "video",
             database_path=root / "openflow.db",
             default_background=Path(__file__).resolve().parents[2] / "automation" / "placeholder.ppm",
+            youtube_client_secrets=root / "client_secret.json",
+            youtube_token_path=root / "youtube_token.json",
         )
+        settings.youtube_client_secrets.write_text("{}", encoding="utf-8")
 
         def fake_render(audio: Path, output: Path, background: Path) -> Path:
             self.assertTrue(audio.is_file())
@@ -29,7 +32,18 @@ class ApiTests(unittest.TestCase):
             output.write_bytes(b"mock-mp4")
             return output
 
-        self.client = TestClient(create_app(settings, fake_render))
+        def fake_publish(
+            video: Path,
+            metadata: object,
+            client_secrets: Path,
+            token_path: Path,
+        ) -> str:
+            self.assertTrue(video.is_file())
+            self.assertTrue(client_secrets.is_file())
+            self.assertEqual(getattr(metadata, "title"), "Night Drive")
+            return "https://www.youtube.com/watch?v=test-video"
+
+        self.client = TestClient(create_app(settings, fake_render, fake_publish))
 
     def tearDown(self) -> None:
         self.temporary_directory.cleanup()
@@ -60,6 +74,22 @@ class ApiTests(unittest.TestCase):
 
         persisted = self.client.get(f"/tracks/{track['id']}")
         self.assertEqual(persisted.json()["video_url"], rendered.json()["video_url"])
+
+        dry_run = self.client.post(
+            f"/tracks/{track['id']}/publish",
+            json={"title": "Night Drive", "tags": ["synthwave"]},
+        )
+        self.assertEqual(dry_run.status_code, 200)
+        self.assertEqual(dry_run.json()["mode"], "dry-run")
+        self.assertEqual(dry_run.json()["track"]["publish_status"], "dry_run")
+
+        published = self.client.post(
+            f"/tracks/{track['id']}/publish",
+            json={"title": "Night Drive", "dry_run": False},
+        )
+        self.assertEqual(published.status_code, 200)
+        self.assertEqual(published.json()["track"]["publish_status"], "published")
+        self.assertEqual(published.json()["youtube_url"], "https://www.youtube.com/watch?v=test-video")
 
     def test_validation_and_missing_track_errors(self) -> None:
         self.assertEqual(self.client.post("/generate", json={"prompt": ""}).status_code, 422)

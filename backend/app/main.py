@@ -11,18 +11,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from automation.video_render import find_ffmpeg, render_video
+from automation.youtube_upload import PublishMetadata, upload_to_youtube, write_publish_manifest
 
 from .audio import synthesize_mock_track
 from .config import Settings
-from .schemas import GenerateRequest, HealthResponse, TrackResponse
+from .schemas import GenerateRequest, HealthResponse, PublishRequest, PublishResponse, TrackResponse
 from .store import TrackStore
 
 RenderFunction = Callable[[Path, Path, Path], Path]
+PublishFunction = Callable[[Path, PublishMetadata, Path, Path], str]
 
 
 def create_app(
     settings: Settings | None = None,
     render_function: RenderFunction = render_video,
+    publish_function: PublishFunction = upload_to_youtube,
 ) -> FastAPI:
     active_settings = settings or Settings.from_environment()
     active_settings.prepare()
@@ -126,6 +129,66 @@ def create_app(
             store.update(track_id, status="failed", error=str(error))
             raise HTTPException(status_code=500, detail=f"Video render failed: {error}") from error
         return response_for(track)
+
+    @application.post("/tracks/{track_id}/publish", response_model=PublishResponse)
+    async def publish_track(track_id: str, request: PublishRequest) -> PublishResponse:
+        track = require_track(track_id)
+        if not track.get("video_filename"):
+            raise HTTPException(status_code=409, detail="Render the track before publishing")
+        video_path = active_settings.rendered_dir / track["video_filename"]
+        metadata = PublishMetadata(
+            title=request.title.strip(),
+            description=request.description,
+            tags=tuple(request.tags),
+            privacy_status=request.privacy_status,
+        )
+        store.update(track_id, publish_status="publishing", error=None)
+
+        if request.dry_run:
+            manifest = active_settings.data_dir / "publish" / f"{track_id}.json"
+            try:
+                await asyncio.to_thread(write_publish_manifest, video_path, metadata, manifest)
+                track = store.update(track_id, publish_status="dry_run", error=None)
+            except Exception as error:
+                store.update(track_id, publish_status="failed", error=str(error))
+                raise HTTPException(status_code=500, detail=f"Publish dry-run failed: {error}") from error
+            return PublishResponse(
+                track=response_for(track),
+                mode="dry-run",
+                message=f"Upload manifest saved locally at {manifest}",
+            )
+
+        client_secrets = active_settings.youtube_client_secrets
+        token_path = active_settings.youtube_token_path
+        if client_secrets is None or token_path is None:
+            store.update(track_id, publish_status="failed", error="YouTube OAuth is not configured")
+            raise HTTPException(
+                status_code=503,
+                detail="Set OPENFLOW_YOUTUBE_CLIENT_SECRETS before a real upload",
+            )
+        try:
+            youtube_url = await asyncio.to_thread(
+                publish_function,
+                video_path,
+                metadata,
+                client_secrets,
+                token_path,
+            )
+            track = store.update(
+                track_id,
+                publish_status="published",
+                youtube_url=youtube_url,
+                error=None,
+            )
+        except Exception as error:
+            store.update(track_id, publish_status="failed", error=str(error))
+            raise HTTPException(status_code=502, detail=f"YouTube upload failed: {error}") from error
+        return PublishResponse(
+            track=response_for(track),
+            mode="youtube",
+            message="Video uploaded to YouTube",
+            youtube_url=youtube_url,
+        )
 
     @application.get("/media/audio/{track_id}", response_class=FileResponse)
     async def audio(track_id: str) -> FileResponse:
