@@ -62,12 +62,18 @@ cd frontend && npm ci
 ```bash
 make test
 make smoke
+make e2e
 ```
 
 `make smoke` uses an injected WAV fixture so CI does not download model weights. It
 serves the WAV through the real API, renders a real 1080p MP4, and writes a publication
 dry-run manifest. Adapter tests cover CUDA selection, CPU fallback, model caching, and
 OOM handling. Run a dashboard generation for the live model test.
+
+`make e2e` launches the test-only API and Next.js dev server, then drives the complete
+Generate → WAV playback → 1080p render → MP4 preview → publish dry-run workflow in a
+real Chromium browser. The fixture generator is dependency-injected for speed; the
+production API always uses MusicGen.
 
 See [setup_notes.md](setup_notes.md) for Windows/WSL CUDA setup, AudioCraft's Python
 compatibility constraints, device overrides, and model-weight licensing.

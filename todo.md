@@ -8,3 +8,4 @@
 - [x] **Phase 7: Publishing:** Add safe dry-run and real OAuth YouTube upload paths.
 - [x] **Phase 8: Quality & Release:** Add CI, full smoke verification, and publish the development PR.
 - [x] **Phase 9: Local AI:** Replace the CPU mock with CUDA-first `facebook/musicgen-small` inference.
+- [x] **Phase 10: Browser E2E:** Verify Generate → Render → Publish through Playwright and CI.

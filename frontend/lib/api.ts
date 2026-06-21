@@ -4,7 +4,8 @@ export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:800
 
 export const api = axios.create({
   baseURL: API_URL,
-  timeout: 120_000,
+  // The first local request may download model weights before inference starts.
+  timeout: 600_000,
   headers: { "Content-Type": "application/json" },
 });
 

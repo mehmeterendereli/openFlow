@@ -29,6 +29,10 @@ describe("openFlow API client", () => {
 
   afterEach(() => mock.restore());
 
+  it("allows enough time for the first local model download", () => {
+    expect(api.defaults.timeout).toBe(600_000);
+  });
+
   it("generates and lists tracks using the backend contract", async () => {
     mock.onPost("/generate", { prompt: track.prompt, model: "musicgen", duration_seconds: 8 }).reply(201, track);
     mock.onGet("/tracks").reply(200, [track]);
