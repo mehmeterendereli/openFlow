@@ -8,6 +8,7 @@ __pycache__/
 *.py[cod]
 .venv/
 backend/generated/
+backend/data/
 
 # Rendered media and secrets
 automation/output/

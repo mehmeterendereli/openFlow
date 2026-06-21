@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-from automation.video_render import build_ffmpeg_command
+from automation.video_render import build_ffmpeg_command, find_ffmpeg
 
 
 class VideoRenderTests(unittest.TestCase):
@@ -18,6 +18,21 @@ class VideoRenderTests(unittest.TestCase):
         self.assertIn("aac", command)
         self.assertIn("-shortest", command)
         self.assertEqual(command[-1], "output.mp4")
+
+    def test_ffmpeg_can_be_configured_with_environment(self) -> None:
+        from os import environ
+        from tempfile import NamedTemporaryFile
+
+        with NamedTemporaryFile() as executable:
+            previous = environ.get("OPENFLOW_FFMPEG")
+            environ["OPENFLOW_FFMPEG"] = executable.name
+            try:
+                self.assertEqual(find_ffmpeg(), executable.name)
+            finally:
+                if previous is None:
+                    environ.pop("OPENFLOW_FFMPEG", None)
+                else:
+                    environ["OPENFLOW_FFMPEG"] = previous
 
 
 if __name__ == "__main__":

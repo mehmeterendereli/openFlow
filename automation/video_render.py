@@ -4,11 +4,29 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 from pathlib import Path
 
 DEFAULT_BACKGROUND = Path(__file__).with_name("placeholder.ppm")
+
+
+def find_ffmpeg() -> str | None:
+    """Resolve FFmpeg from configuration, PATH, or the optional bundled wheel."""
+
+    configured = os.getenv("OPENFLOW_FFMPEG")
+    if configured and Path(configured).is_file():
+        return configured
+    executable = shutil.which("ffmpeg")
+    if executable:
+        return executable
+    try:
+        import imageio_ffmpeg
+
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except (ImportError, RuntimeError):
+        return None
 
 
 def build_ffmpeg_command(
@@ -51,7 +69,7 @@ def build_ffmpeg_command(
 def render_video(audio: Path, output: Path, background: Path = DEFAULT_BACKGROUND) -> Path:
     """Combine audio and a still background, returning the rendered file path."""
 
-    ffmpeg = shutil.which("ffmpeg")
+    ffmpeg = find_ffmpeg()
     if ffmpeg is None:
         raise RuntimeError("FFmpeg is required but was not found on PATH.")
     if not audio.is_file():

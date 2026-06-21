@@ -3,7 +3,7 @@ import unittest
 import wave
 from pathlib import Path
 
-from app.audio import SAMPLE_RATE, synthesize_mock_track
+from backend.app.audio import SAMPLE_RATE, synthesize_mock_track
 
 
 class MockAudioTests(unittest.TestCase):
