@@ -4,3 +4,6 @@
 - [x] **Phase 3: Backend API:** Init FastAPI in `/backend`, create `/generate` endpoint (mock AI generation for speed).
 - [x] **Phase 4: Integration:** Connect Next.js UI to FastAPI via Axios. Display generated audio waveform.
 - [x] **Phase 5: Automation:** Create `video_render.py` using FFmpeg to merge audio with a placeholder image.
+- [x] **Phase 6: Persistence:** Store tracks and pipeline state in local SQLite.
+- [x] **Phase 7: Publishing:** Add safe dry-run and real OAuth YouTube upload paths.
+- [x] **Phase 8: Quality & Release:** Add CI, full smoke verification, and publish the development PR.

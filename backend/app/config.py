@@ -17,7 +17,7 @@ class Settings:
     youtube_token_path: Path | None = None
 
     @classmethod
-    def from_environment(cls) -> "Settings":
+    def from_environment(cls) -> Settings:
         backend_dir = Path(__file__).resolve().parents[1]
         repository_dir = backend_dir.parent
         data_dir = Path(os.getenv("OPENFLOW_DATA_DIR", backend_dir / "data")).resolve()

@@ -39,7 +39,11 @@ def synthesize_mock_track(destination: Path, prompt: str, duration_seconds: int)
             pulse = 0.58 * math.sin(2 * math.pi * frequency * time)
             texture = 0.18 * math.sin(2 * math.pi * frequency * 2.005 * time)
             kick_phase = time % 0.5
-            kick = 0.24 * math.sin(2 * math.pi * (55 - kick_phase * 50) * kick_phase) * math.exp(-18 * kick_phase)
+            kick = (
+                0.24
+                * math.sin(2 * math.pi * (55 - kick_phase * 50) * kick_phase)
+                * math.exp(-18 * kick_phase)
+            )
             sample = int(max(-1.0, min(1.0, (pulse + texture + kick) * envelope * 0.48)) * 32_767)
             delayed = int(sample * (0.94 + 0.04 * math.sin(2 * math.pi * 0.2 * time)))
             chunk.extend(sample.to_bytes(2, "little", signed=True))

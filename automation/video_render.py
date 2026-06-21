@@ -37,6 +37,9 @@ def build_ffmpeg_command(
 ) -> list[str]:
     return [
         ffmpeg,
+        "-hide_banner",
+        "-loglevel",
+        "error",
         "-y",
         "-loop",
         "1",

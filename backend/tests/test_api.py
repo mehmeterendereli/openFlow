@@ -6,6 +6,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from automation.youtube_upload import PublishMetadata
 from backend.app.config import Settings
 from backend.app.main import create_app
 
@@ -34,13 +35,13 @@ class ApiTests(unittest.TestCase):
 
         def fake_publish(
             video: Path,
-            metadata: object,
+            metadata: PublishMetadata,
             client_secrets: Path,
             token_path: Path,
         ) -> str:
             self.assertTrue(video.is_file())
             self.assertTrue(client_secrets.is_file())
-            self.assertEqual(getattr(metadata, "title"), "Night Drive")
+            self.assertEqual(metadata.title, "Night Drive")
             return "https://www.youtube.com/watch?v=test-video"
 
         self.client = TestClient(create_app(settings, fake_render, fake_publish))
