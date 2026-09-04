@@ -1,7 +1,7 @@
 # openFlow video automation
 
 `video_render.py` combines generated audio with a still image and creates a 1920×1080
-H.264/AAC MP4. A small built-in placeholder is used when `--image` is omitted.
+H.264/AAC MP4. A small neutral background is used when `--image` is omitted.
 
 FFmpeg must be installed and available on `PATH`.
 
