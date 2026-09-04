@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render an audio track and still image as a publish-ready 1080p MP4."""
+"""Render an audio track and still image as a 1080p MP4."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-DEFAULT_BACKGROUND = Path(__file__).with_name("placeholder.ppm")
+DEFAULT_BACKGROUND = Path(__file__).with_name("neutral-background.ppm")
 
 
 def build_ffmpeg_command(

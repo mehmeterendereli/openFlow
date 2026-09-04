@@ -1,34 +1,18 @@
 # openFlow
 
-An open-source, local-first prototype for generating AI music, previewing it in a web
-studio, and rendering it as publish-ready video.
+> **Archived local media-workflow prototype. This repository is not maintained or supported.**
 
-## Run locally
+openFlow combines a small FastAPI backend, a Next.js interface, and an FFmpeg command builder. The backend produces deterministic synthetic audio for interface testing; it does not contain a trained music-generation system or an automated publishing integration.
 
-Start the API from the repository root:
+## Archive status
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r backend/requirements.txt
-uvicorn backend.app.main:app --reload --port 8000
-```
+- The last recorded CI run passed the narrow backend and command-builder tests on the historical default branch.
+- Dependencies, browser behaviour, media output, and FFmpeg compatibility were not revalidated during archival.
+- No hosted service, production deployment, generated-media quality, or publishing result is claimed.
+- Internal execution plans and tool-specific instruction files were removed from the public archive surface.
 
-In a second terminal, start the dashboard:
+The repository is retained as a historical prototype. There is no designated maintained successor; current public work is listed in the [open-source portfolio](https://www.mehmeterendereli.com/en/open-source).
 
-```bash
-cd frontend
-cp .env.example .env.local
-npm install
-npm run dev
-```
+## License
 
-Open `http://localhost:3000`, generate a track, then render its WAV using the command
-documented in `automation/README.md`. The current audio generator is an intentional
-mock so the entire workflow remains usable without GPU model dependencies.
-
-## Prerequisites
-
-- Python 3.11+
-- Node.js 20+
-- FFmpeg (for MP4 rendering)
+No license file is present. Public visibility does not grant permission to copy, modify, or redistribute the source.
